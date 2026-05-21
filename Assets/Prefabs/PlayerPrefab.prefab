@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 2477813628522427774}
   - component: {fileID: 1608520461905754528}
   - component: {fileID: 5490794876096982180}
+  - component: {fileID: -2913618209701718678}
+  - component: {fileID: -2336272586009242352}
   m_Layer: 0
   m_Name: PlayerPrefab
   m_TagString: Untagged
@@ -107,8 +109,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3aba2cdaab7e68439223ad64599c2f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  speed: 5
-  bombObject: {fileID: 0}
+  speed: 50
 --- !u!114 &2477813628522427774
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -121,6 +122,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81f030f98173409428c9ac41bf5f74db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BombHolder
+  _HasBomb:
+    _value: 0
 --- !u!70 &1608520461905754528
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -185,3 +188,41 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &-2913618209701718678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2054545576330012260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1017002590
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 278618601186528304}
+  - {fileID: 2477813628522427774}
+  - {fileID: -2336272586009242352}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &-2336272586009242352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2054545576330012260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0

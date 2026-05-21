@@ -7,7 +7,7 @@ public class TimerUI : MonoBehaviour
 
     private void Update()
     {
-        timerText.text =
-            Mathf.Ceil(GameManager.Instance.currentTime).ToString();
+        if (GameManager.Instance == null || GameManager.Instance.Object == null || !GameManager.Instance.Object.IsValid) return;
+        timerText.text = Mathf.Ceil(GameManager.Instance.CurrentTime).ToString();
     }
 }

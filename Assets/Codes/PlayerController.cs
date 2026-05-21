@@ -1,51 +1,55 @@
+using Fusion;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float speed = 5f;
-    [SerializeField] private BombObject bombObject;
 
     private BombHolder myBombHolder;
-    private BombHolder nearbyPlayer;
+    private BombHolder nearbyPlayerBombHolder;
+    private NetworkButtons _prevButtons;
 
     private void Awake()
     {
         myBombHolder = GetComponent<BombHolder>();
     }
 
-    private void Start()
-    {
-        myBombHolder.ReceiveBomb();
-        bombObject.SetOwner(myBombHolder);
-    }
 
-    private void Update()
+    public override void FixedUpdateNetwork()
     {
-        Move();
-
-        if (Input.GetKeyDown(KeyCode.X))
+        if (GetInput(out NetworkInputData data))
         {
-            TryPassBomb();
+            Move(data.moveInput);
+
+            bool justPressed = data.buttons.IsSet(PlayerInputButton.PassBomb)
+                            && !_prevButtons.IsSet(PlayerInputButton.PassBomb);
+
+            if (justPressed)
+                TryPassBomb();
+
+            _prevButtons = data.buttons;
         }
     }
 
-    private void Move()
+    public override void Spawned()
     {
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        gameObject.name = $"Player {Object.InputAuthority.RawEncoded}";
+        GameManager.Instance.RegisterPlayer(myBombHolder);
+    }
 
-        transform.Translate(new Vector3(h, v, 0) * speed * Time.deltaTime);
+    private void Move(Vector2 moveInput)
+    {
+        Vector3 moveDir = new Vector3(moveInput.x, moveInput.y, 0f);
+
+        transform.Translate(moveDir.normalized * speed * Runner.DeltaTime);
     }
 
     private void TryPassBomb()
     {
         if (!myBombHolder.HasBomb) return;
-        if (nearbyPlayer == null) return;
+        if (nearbyPlayerBombHolder == null) return;
 
-        myBombHolder.RemoveBomb();
-        nearbyPlayer.ReceiveBomb();
-
-        bombObject.SetOwner(nearbyPlayer);
+        GameManager.Instance.PassBomb(nearbyPlayerBombHolder);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -54,7 +58,7 @@ public class PlayerController : MonoBehaviour
 
         if (bombHolder != null && bombHolder != myBombHolder)
         {
-            nearbyPlayer = bombHolder;
+            nearbyPlayerBombHolder = bombHolder;
         }
     }
 
@@ -62,9 +66,9 @@ public class PlayerController : MonoBehaviour
     {
         BombHolder bombHolder = other.GetComponent<BombHolder>();
 
-        if (bombHolder != null && bombHolder == nearbyPlayer)
+        if (bombHolder != null && bombHolder == nearbyPlayerBombHolder)
         {
-            nearbyPlayer = null;
+            nearbyPlayerBombHolder = null;
         }
     }
 }

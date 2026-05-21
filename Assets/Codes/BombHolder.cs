@@ -1,9 +1,9 @@
-using UnityEngine;
+using Fusion;
 
-
-public class BombHolder : MonoBehaviour
+public class BombHolder : NetworkBehaviour
 {
-    public bool HasBomb { get; private set; }
+    [Networked]
+    public NetworkBool HasBomb { get; set; }
 
     public void ReceiveBomb()
     {
