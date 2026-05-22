@@ -67,4 +67,10 @@ public class LobbyUI : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
+
+    public void ShowLobby()
+    {
+        gameObject.SetActive(true);
+        SetButtonsInteractable(true);
+    }
 }

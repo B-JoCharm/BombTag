@@ -9,16 +9,21 @@ public class GameManager : NetworkBehaviour
 
     [Header("Game")]
     [Networked] public float CurrentTime { get; set; }
+    [Networked, OnChangedRender(nameof(OnGameStartedChanged))]
+    public NetworkBool IsGameStarted { get; set; }
     [Networked, OnChangedRender(nameof(OnGameOverChanged))]
     public NetworkBool IsGameOver { get; set; }
     [Networked] public BombHolder CurrentBombOwner { get; set; }
 
     private List<BombHolder> players = new List<BombHolder>();
+    public IReadOnlyList<BombHolder> Players => players;
 
     [Header("Bomb")]
     [SerializeField] private BombObject bombObject;
 
-    [Header("Game Over UI")]
+    [Header("UI")]
+    [SerializeField] private WaitingRoomUI waitingRoomUI;
+    [SerializeField] private GameObject gamePanel;
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private TextMeshProUGUI resultText;
 
@@ -27,20 +32,13 @@ public class GameManager : NetworkBehaviour
         Instance = this;
     }
 
-    private void Start()
-    {
-        gameOverPanel.SetActive(false);
-    }
 
-    public override void Spawned()
-    {
-        if (Object.HasStateAuthority)
-            CurrentTime = 10f;
-    }
+
 
     public override void FixedUpdateNetwork()
     {
         if (!Object.HasStateAuthority) return;
+        if (!IsGameStarted) return;
         if (IsGameOver) return;
         if (CurrentBombOwner == null) return;
 
@@ -58,11 +56,6 @@ public class GameManager : NetworkBehaviour
         if (players.Contains(player)) return;
 
         players.Add(player);
-
-        if (!Object.HasStateAuthority) return;
-
-        if (players.Count >= 2 && CurrentBombOwner == null)
-            GiveRandomPlayerBomb();
     }
 
     private void GiveRandomPlayerBomb()
@@ -88,6 +81,7 @@ public class GameManager : NetworkBehaviour
     public void UnregisterPlayer(BombHolder player)
     {
         if (!players.Contains(player)) return;
+        if (Object == null || !Object.IsValid) return;
 
         bool wasBombOwner = CurrentBombOwner == player;
         players.Remove(player);
@@ -97,8 +91,24 @@ public class GameManager : NetworkBehaviour
         bombObject.ClearOwner();
         CurrentBombOwner = null;
 
-        if (players.Count >= 1)
+        if (players.Count >= 1 && IsGameStarted && !IsGameOver)
             GiveRandomPlayerBomb();
+    }
+
+    public bool TryStartGame()
+    {
+        if (!Object.HasStateAuthority) return false;
+        if (players.Count < 2) return false;
+
+        foreach (var player in players)
+        {
+            if (!player.IsReady) return false;
+        }
+
+        IsGameStarted = true;
+        CurrentTime = 10f;
+        GiveRandomPlayerBomb();
+        return true;
     }
 
     private void GameOver()
@@ -106,14 +116,56 @@ public class GameManager : NetworkBehaviour
         IsGameOver = true;
     }
 
+    private void OnGameStartedChanged()
+    {
+        if (IsGameStarted)
+        {
+            waitingRoomUI.gameObject.SetActive(false);
+            gamePanel.SetActive(true);
+            gameOverPanel.SetActive(false);
+        }
+        else
+        {
+            gamePanel.SetActive(false);
+            waitingRoomUI.gameObject.SetActive(true);
+            waitingRoomUI.OnGameReset();
+        }
+    }
+
     private void OnGameOverChanged()
     {
+        if (!IsGameOver)
+        {
+            gameOverPanel.SetActive(false);
+            return;
+        }
+
         string loserName = CurrentBombOwner != null
-            ? CurrentBombOwner.gameObject.name
+            ? CurrentBombOwner.Nickname.ToString()
             : "Unknown Player";
 
         gameOverPanel.SetActive(true);
         resultText.text = $"GAME OVER\n{loserName} Lose";
+    }
+
+    public void ResetGame()
+    {
+        if (!Object.HasStateAuthority) return;
+
+        bombObject.ClearOwner();
+        CurrentBombOwner = null;
+        CurrentTime = 0;
+
+        foreach (var player in players)
+        {
+            if (player.Object.InputAuthority == Runner.LocalPlayer)
+                player.IsReady = true;
+            else
+                player.IsReady = false;
+        }
+
+        IsGameOver = false;
+        IsGameStarted = false;
     }
 
     public void ShowHostDisconnectedMessage()

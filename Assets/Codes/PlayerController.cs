@@ -5,6 +5,8 @@ public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float speed = 5f;
 
+    public static BombHolder LocalBombHolder { get; private set; }
+
     private BombHolder myBombHolder;
     private BombHolder nearbyPlayerBombHolder;
     private NetworkButtons _prevButtons;
@@ -34,6 +36,16 @@ public class PlayerController : NetworkBehaviour
     public override void Spawned()
     {
         gameObject.name = $"Player {Object.InputAuthority.RawEncoded}";
+
+        if (Object.HasInputAuthority)
+        {
+            LocalBombHolder = myBombHolder;
+            myBombHolder.RPC_SetNickname(BasicSpawner.LocalNickname);
+
+            if (Runner.IsServer)
+                myBombHolder.IsReady = true;
+        }
+
         GameManager.Instance.RegisterPlayer(myBombHolder);
     }
 

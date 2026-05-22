@@ -1,17 +1,20 @@
+using System.Collections;
+using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
     [SerializeField] private NetworkPrefabRef playerPrefab;
     [SerializeField] private LobbyUI lobbyUI;
+    [SerializeField] private WaitingRoomUI waitingRoomUI;
 
     public static string LocalNickname { get; private set; }
 
     private NetworkRunner runner;
     private bool isConnected = false;
+    private bool isLeavingVoluntarily = false;
 
     public void CreateGame(string nickname, string gameCode)
     {
@@ -27,7 +30,9 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     private async void StartGame(GameMode mode, string sessionName)
     {
-        runner = gameObject.AddComponent<NetworkRunner>();
+        var runnerGO = new GameObject("NetworkRunner");
+        runner = runnerGO.AddComponent<NetworkRunner>();
+        runner.AddCallbacks(this);
         runner.ProvideInput = true;
 
         var result = await runner.StartGame(new StartGameArgs()
@@ -35,7 +40,7 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
             GameMode = mode,
             SessionName = sessionName,
             Scene = SceneRef.FromIndex(gameObject.scene.buildIndex),
-            SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
+            SceneManager = runnerGO.AddComponent<NetworkSceneManagerDefault>()
         });
 
         if (!result.Ok)
@@ -49,6 +54,18 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         lobbyUI.HideLobby();
+        StartCoroutine(ShowUIAfterJoin(mode == GameMode.Host));
+    }
+
+    private IEnumerator ShowUIAfterJoin(bool isHost)
+    {
+        yield return new WaitUntil(() =>
+            GameManager.Instance != null &&
+            GameManager.Instance.Object != null &&
+            GameManager.Instance.Object.IsValid);
+
+        if (!GameManager.Instance.IsGameStarted)
+            waitingRoomUI.Setup(isHost);
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -96,13 +113,23 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
         runner.Despawn(playerObject);
     }
 
+    public void LeaveGame()
+    {
+        isLeavingVoluntarily = true;
+        runner.Shutdown();
+    }
+
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-        if (!runner.IsServer && isConnected && GameManager.Instance != null)
+        if (!isLeavingVoluntarily && !runner.IsServer && isConnected && GameManager.Instance != null)
             GameManager.Instance.ShowHostDisconnectedMessage();
 
+        isLeavingVoluntarily = false;
         isConnected = false;
         this.runner = null;
+
+        waitingRoomUI.gameObject.SetActive(false);
+        lobbyUI.ShowLobby();
     }
 
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
