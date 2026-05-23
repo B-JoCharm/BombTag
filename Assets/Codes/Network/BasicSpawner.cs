@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
@@ -54,24 +53,15 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         lobbyUI.HideLobby();
-        StartCoroutine(ShowUIAfterJoin(mode == GameMode.Host));
-    }
-
-    private IEnumerator ShowUIAfterJoin(bool isHost)
-    {
-        yield return new WaitUntil(() =>
-            GameManager.Instance != null &&
-            GameManager.Instance.Object != null &&
-            GameManager.Instance.Object.IsValid);
-
-        if (!GameManager.Instance.IsGameStarted)
-            waitingRoomUI.Setup(isHost);
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
         if (player == runner.LocalPlayer)
+        {
             isConnected = true;
+            waitingRoomUI.Setup(runner.IsServer);
+        }
 
         if (runner.IsServer)
         {

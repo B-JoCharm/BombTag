@@ -5,15 +5,44 @@ public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float speed = 5f;
 
+    [Header("Map Bounds")]
+    [SerializeField] private float mapHalfWidth = 9f;
+    [SerializeField] private float mapHalfHeight = 5f;
+
+    [Header("Characters")]
+    [SerializeField] private RuntimeAnimatorController[] characterAnimators;
+
     public static BombHolder LocalBombHolder { get; private set; }
 
     private BombHolder myBombHolder;
     private BombHolder nearbyPlayerBombHolder;
     private NetworkButtons _prevButtons;
 
+    private Animator animator;
+    private SpriteRenderer spriteRenderer;
+    private Vector3 previousPosition;
+    private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
+
     private void Awake()
     {
         myBombHolder = GetComponent<BombHolder>();
+        animator = GetComponentInChildren<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+    }
+
+    public override void Render()
+    {
+        Vector3 delta = transform.position - previousPosition;
+        bool isMoving = delta.magnitude > 0.001f;
+
+        animator.SetBool(IsMovingHash, isMoving);
+
+        if (delta.x < -0.001f)
+            spriteRenderer.flipX = true;
+        else if (delta.x > 0.001f)
+            spriteRenderer.flipX = false;
+
+        previousPosition = transform.position;
     }
 
 
@@ -47,13 +76,24 @@ public class PlayerController : NetworkBehaviour
         }
 
         GameManager.Instance.RegisterPlayer(myBombHolder);
+        ApplyCharacter(myBombHolder.CharacterIndex);
+    }
+
+    public void ApplyCharacter(int index)
+    {
+        if (characterAnimators == null || index >= characterAnimators.Length) return;
+        animator.runtimeAnimatorController = characterAnimators[index];
     }
 
     private void Move(Vector2 moveInput)
     {
         Vector3 moveDir = new Vector3(moveInput.x, moveInput.y, 0f);
-
         transform.Translate(moveDir.normalized * speed * Runner.DeltaTime);
+
+        Vector3 pos = transform.position;
+        pos.x = Mathf.Clamp(pos.x, -mapHalfWidth, mapHalfWidth);
+        pos.y = Mathf.Clamp(pos.y, -mapHalfHeight, mapHalfHeight);
+        transform.position = pos;
     }
 
     private void TryPassBomb()

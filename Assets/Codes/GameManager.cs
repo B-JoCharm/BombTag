@@ -9,6 +9,7 @@ public class GameManager : NetworkBehaviour
 
     [Header("Game")]
     [Networked] public float CurrentTime { get; set; }
+    [Networked] public float GameDuration { get; set; }
     [Networked, OnChangedRender(nameof(OnGameStartedChanged))]
     public NetworkBool IsGameStarted { get; set; }
     [Networked, OnChangedRender(nameof(OnGameOverChanged))]
@@ -17,6 +18,8 @@ public class GameManager : NetworkBehaviour
 
     private List<BombHolder> players = new List<BombHolder>();
     public IReadOnlyList<BombHolder> Players => players;
+
+    private List<int> availableCharacters = new List<int> { 0, 1, 2, 3 };
 
     [Header("Bomb")]
     [SerializeField] private BombObject bombObject;
@@ -30,6 +33,18 @@ public class GameManager : NetworkBehaviour
     private void Awake()
     {
         Instance = this;
+    }
+
+    public override void Spawned()
+    {
+        if (Object.HasStateAuthority)
+            GameDuration = 30f;
+    }
+
+    public void SetGameDuration(float duration)
+    {
+        if (!Object.HasStateAuthority) return;
+        GameDuration = duration;
     }
 
 
@@ -53,9 +68,27 @@ public class GameManager : NetworkBehaviour
 
     public void RegisterPlayer(BombHolder player)
     {
+        players.RemoveAll(p =>
+        {
+            if (p == null || p.Object == null || !p.Object.IsValid)
+            {
+                if (p != null && !availableCharacters.Contains(p.CharacterIndex))
+                    availableCharacters.Add(p.CharacterIndex);
+                return true;
+            }
+            return false;
+        });
+
         if (players.Contains(player)) return;
 
         players.Add(player);
+
+        if (Object != null && Object.IsValid && Object.HasStateAuthority && availableCharacters.Count > 0)
+        {
+            int randomIdx = Random.Range(0, availableCharacters.Count);
+            player.CharacterIndex = availableCharacters[randomIdx];
+            availableCharacters.RemoveAt(randomIdx);
+        }
     }
 
     private void GiveRandomPlayerBomb()
@@ -86,6 +119,9 @@ public class GameManager : NetworkBehaviour
         bool wasBombOwner = CurrentBombOwner == player;
         players.Remove(player);
 
+        if (!availableCharacters.Contains(player.CharacterIndex))
+            availableCharacters.Add(player.CharacterIndex);
+
         if (!wasBombOwner) return;
 
         bombObject.ClearOwner();
@@ -97,7 +133,10 @@ public class GameManager : NetworkBehaviour
 
     public bool TryStartGame()
     {
-        if (!Object.HasStateAuthority) return false;
+        if (Object == null || !Object.IsValid || !Object.HasStateAuthority) return false;
+
+        players.RemoveAll(p => p == null || p.Object == null || !p.Object.IsValid);
+
         if (players.Count < 2) return false;
 
         foreach (var player in players)
@@ -106,7 +145,7 @@ public class GameManager : NetworkBehaviour
         }
 
         IsGameStarted = true;
-        CurrentTime = 10f;
+        CurrentTime = GameDuration;
         GiveRandomPlayerBomb();
         return true;
     }
