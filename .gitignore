@@ -33,3 +33,7 @@ ServerData/
 
 # Burst cache
 Library/BurstCache/
+
+# Photon App ID (credentials)
+Assets/Photon/Fusion/Resources/PhotonAppSettings.asset
+Assets/Photon/Fusion/Resources/PhotonAppSettings.asset.meta

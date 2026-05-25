@@ -327,6 +327,11 @@ MonoBehaviour:
   profileImage: {fileID: 3140686582413626441}
   nicknameText: {fileID: 2547372336258563401}
   readyText: {fileID: 5204340677435848778}
+  characterProfiles:
+  - {fileID: 21300000, guid: 5ad76a417ed7ee442972cbc793cb96b1, type: 3}
+  - {fileID: 21300000, guid: 60e6941b267af8c4b8f94f8ff48c57a7, type: 3}
+  - {fileID: 21300000, guid: 76cffc62b24002d4a8204029cf35d652, type: 3}
+  - {fileID: 21300000, guid: 4991228aad40a7d4696afd7f7bf75b6b, type: 3}
 --- !u!1 &7956957569830862792
 GameObject:
   m_ObjectHideFlags: 0

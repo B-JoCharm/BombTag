@@ -65,7 +65,9 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
         if (runner.IsServer)
         {
-            Vector3 spawnPosition = new(player.RawEncoded * 2, 0, 0);
+            Vector3 spawnPosition = GameManager.Instance != null
+                ? GameManager.Instance.GetSpawnPoint(GameManager.Instance.Players.Count)
+                : new Vector3(player.RawEncoded * 2, 0, 0);
 
             NetworkObject networkPlayerObject = runner.Spawn(
                 playerPrefab,

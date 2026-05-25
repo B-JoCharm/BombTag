@@ -12,6 +12,9 @@ public class PlayerController : NetworkBehaviour
     [Header("Characters")]
     [SerializeField] private RuntimeAnimatorController[] characterAnimators;
 
+    [Header("Collision")]
+    [SerializeField] private LayerMask obstacleLayer;
+
     public static BombHolder LocalBombHolder { get; private set; }
 
     private BombHolder myBombHolder;
@@ -20,6 +23,7 @@ public class PlayerController : NetworkBehaviour
 
     private Animator animator;
     private SpriteRenderer spriteRenderer;
+    private BoxCollider2D physicsCollider;
     private Vector3 previousPosition;
     private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
 
@@ -28,6 +32,7 @@ public class PlayerController : NetworkBehaviour
         myBombHolder = GetComponent<BombHolder>();
         animator = GetComponentInChildren<Animator>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        physicsCollider = GetComponent<BoxCollider2D>();
     }
 
     public override void Render()
@@ -87,8 +92,29 @@ public class PlayerController : NetworkBehaviour
 
     private void Move(Vector2 moveInput)
     {
-        Vector3 moveDir = new Vector3(moveInput.x, moveInput.y, 0f);
-        transform.Translate(moveDir.normalized * speed * Runner.DeltaTime);
+        if (moveInput == Vector2.zero) return;
+
+        Vector2 dir = moveInput.normalized;
+        float dist = speed * Runner.DeltaTime;
+        Vector2 size = physicsCollider.size * 0.9f;
+
+        if (dir.x != 0)
+        {
+            Vector2 origin = (Vector2)transform.position + physicsCollider.offset;
+            Vector2 xDir = new(Mathf.Sign(dir.x), 0f);
+            RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, xDir, Mathf.Abs(dir.x) * dist, obstacleLayer);
+            float moveX = hit.collider != null ? Mathf.Max(0f, hit.distance - 0.02f) : Mathf.Abs(dir.x) * dist;
+            transform.position += new Vector3(xDir.x * moveX, 0f, 0f);
+        }
+
+        if (dir.y != 0)
+        {
+            Vector2 origin = (Vector2)transform.position + physicsCollider.offset;
+            Vector2 yDir = new(0f, Mathf.Sign(dir.y));
+            RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, yDir, Mathf.Abs(dir.y) * dist, obstacleLayer);
+            float moveY = hit.collider != null ? Mathf.Max(0f, hit.distance - 0.02f) : Mathf.Abs(dir.y) * dist;
+            transform.position += new Vector3(0f, yDir.y * moveY, 0f);
+        }
 
         Vector3 pos = transform.position;
         pos.x = Mathf.Clamp(pos.x, -mapHalfWidth, mapHalfWidth);

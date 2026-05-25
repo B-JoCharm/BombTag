@@ -9,6 +9,7 @@ public class BombHolder : NetworkBehaviour
     public NetworkString<_32> Nickname { get; set; }
 
     [Networked] public NetworkBool IsReady { get; set; }
+    [Networked] public int SpawnIndex { get; set; }
     [Networked, OnChangedRender(nameof(OnCharacterIndexChanged))]
     public int CharacterIndex { get; set; }
 

@@ -21,6 +21,9 @@ public class GameManager : NetworkBehaviour
 
     private List<int> availableCharacters = new List<int> { 0, 1, 2, 3 };
 
+    [Header("Spawn Points")]
+    [SerializeField] private Transform[] spawnPoints;
+
     [Header("Bomb")]
     [SerializeField] private BombObject bombObject;
 
@@ -85,6 +88,8 @@ public class GameManager : NetworkBehaviour
 
         if (Object != null && Object.IsValid && Object.HasStateAuthority && availableCharacters.Count > 0)
         {
+            player.SpawnIndex = players.Count - 1;
+
             int randomIdx = Random.Range(0, availableCharacters.Count);
             player.CharacterIndex = availableCharacters[randomIdx];
             availableCharacters.RemoveAt(randomIdx);
@@ -155,6 +160,12 @@ public class GameManager : NetworkBehaviour
         IsGameOver = true;
     }
 
+    public Vector3 GetSpawnPoint(int index)
+    {
+        if (spawnPoints == null || spawnPoints.Length == 0) return Vector3.zero;
+        return spawnPoints[Mathf.Clamp(index, 0, spawnPoints.Length - 1)].position;
+    }
+
     private void OnGameStartedChanged()
     {
         if (IsGameStarted)
@@ -162,6 +173,12 @@ public class GameManager : NetworkBehaviour
             waitingRoomUI.gameObject.SetActive(false);
             gamePanel.SetActive(true);
             gameOverPanel.SetActive(false);
+
+            if (Object.HasStateAuthority && spawnPoints != null)
+            {
+                foreach (var player in players)
+                    player.transform.position = GetSpawnPoint(player.SpawnIndex);
+            }
         }
         else
         {
@@ -201,6 +218,12 @@ public class GameManager : NetworkBehaviour
                 player.IsReady = true;
             else
                 player.IsReady = false;
+        }
+
+        if (spawnPoints != null)
+        {
+            foreach (var player in players)
+                player.transform.position = GetSpawnPoint(player.SpawnIndex);
         }
 
         IsGameOver = false;
